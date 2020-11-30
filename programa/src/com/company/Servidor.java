@@ -20,10 +20,7 @@ public class Servidor {
         s = new ServerSocket(5000);
         System.out.println("Servidor iniciado");
         while (true) {
-            System.out.println("pasa por server?");
             c = s.accept(); //esperando cliente
-            System.out.println("si pasa");
-
             System.out.println("cliente conectado");
             Hilo hilo = new Hilo(c);
             hilo.start();
