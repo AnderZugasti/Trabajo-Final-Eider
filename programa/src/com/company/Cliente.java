@@ -1,6 +1,7 @@
 package com.company;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.*;
@@ -143,8 +144,22 @@ public class Cliente extends Thread {
         }
     }
 
-    public static void juego(Socket socket) {
+    public static void juego(Socket socket) throws IOException, ClassNotFoundException {
+        int respuesta =0;
+        String pregunta, res1, res2, res3;
 
+        //Genero las claves pública y privada
+        KeyPairGenerator keygen = null;
+        KeyPair keyPair = keygen.generateKeyPair();
+        PrivateKey prvKey = keyPair.getPrivate();
+        PublicKey pblKey = keyPair.getPublic(), claveServer;
+        //Todo empezar con las preguntas
+        do{
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+            claveServer = (PublicKey) ois.readObject();
+            Cipher des = (Cipher) ois.readObject();
+            pregunta = ois.
+        }while (respuesta!=4);
 
 
     }
