@@ -116,7 +116,7 @@ public class Cliente extends Thread {
                     if (check) {
                         int eleccion;
                         do {
-                            
+
                             System.out.println(normas + "\n Konexio fidagarria daukazu, jolastu nahi duzu?\n1- Bai\n2-Ez");
                             eleccion = Integer.parseInt(br.readLine());
                         } while (eleccion == 1 || eleccion == 2);
@@ -129,7 +129,7 @@ public class Cliente extends Thread {
                             System.out.println("hurrengorate orduan!!");
                         }
 
-                    }else {
+                    } else {
                         flujoSalida.write(2);
                         System.out.println("Konexioa ez da fidagarria, konexioa hizten");
                     }
@@ -144,9 +144,11 @@ public class Cliente extends Thread {
         }
     }
 
-    public static void juego(Socket socket) throws IOException, ClassNotFoundException {
-        int respuesta =0;
-        String pregunta, res1, res2, res3;
+    public static void juego(Socket socket) throws IOException, ClassNotFoundException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+
+        int respuesta = 0;
+        String  preguntaD,res1D,res2D,res3D;
+        byte [] pregunta,res1, res2, res3;
 
         //Genero las claves pública y privada
         KeyPairGenerator keygen = null;
@@ -154,12 +156,30 @@ public class Cliente extends Thread {
         PrivateKey prvKey = keyPair.getPrivate();
         PublicKey pblKey = keyPair.getPublic(), claveServer;
         //Todo empezar con las preguntas
-        do{
+        do {
+            //Recojo la informacion
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
             claveServer = (PublicKey) ois.readObject();
             Cipher des = (Cipher) ois.readObject();
-            pregunta = ois.
-        }while (respuesta!=4);
+            pregunta = (byte[]) ois.readObject();
+            res1 = (byte[]) ois.readObject();
+            res2 = (byte[]) ois.readObject();
+            res3 = (byte[]) ois.readObject();
+
+            //Descifro los textos
+            des.init(Cipher.DECRYPT_MODE,claveServer);
+            byte[] preguntaB = des.doFinal(pregunta);
+            byte[] res1B = des.doFinal(pregunta);
+            byte[] res2B = des.doFinal(pregunta);
+            byte[] res3B = des.doFinal(pregunta);
+            preguntaD = new String(preguntaB);
+            res1D = new String(res1B);
+            res2D = new String(res2B);
+            res3D = new String(res3B);
+            System.out.println(preguntaD+"\n1-"+res1D+"\n2-"+res2D+"\n3-"+res3D+"\n4- Amaitu");
+            int seleccion = Integer.parseInt(br.readLine());
+
+        } while (respuesta != 4);
 
 
     }
