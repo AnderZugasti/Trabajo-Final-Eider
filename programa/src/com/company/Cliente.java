@@ -113,25 +113,31 @@ public class Cliente extends Thread {
                     verificadsa.update(Hexadecimal.getBytes());
                     boolean check = verificadsa.verify(firma);
                     System.out.println(check);
+                    ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+
                     if (check) {
                         int eleccion;
                         do {
 
                             System.out.println(normas + "\n Konexio fidagarria daukazu, jolastu nahi duzu?\n1- Bai\n2-Ez");
                             eleccion = Integer.parseInt(br.readLine());
-                        } while (eleccion == 1 || eleccion == 2);
+                        } while (eleccion != 1 && eleccion != 2);
                         if (eleccion == 1) {
-                            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-                            flujoSalida.write(eleccion);
+                            System.out.println("pasa");
+                            System.out.println();
+                            oos.writeObject(eleccion);
+                            System.out.println(eleccion);
                             juego(socket);
                         } else {
-                            flujoSalida.write(eleccion);
+                            oos.writeObject(eleccion);
                             System.out.println("hurrengorate orduan!!");
+                            socket.close();
                         }
 
                     } else {
-                        flujoSalida.write(2);
+                        oos.writeObject(2);
                         System.out.println("Konexioa ez da fidagarria, konexioa hizten");
+                        socket.close();
                     }
 
                 } catch (Exception a) {
@@ -144,42 +150,66 @@ public class Cliente extends Thread {
         }
     }
 
-    public static void juego(Socket socket) throws IOException, ClassNotFoundException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-
+    public static void juego(Socket socket) throws IOException, ClassNotFoundException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchPaddingException, NoSuchAlgorithmException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         int respuesta = 0;
-        String  preguntaD,res1D,res2D,res3D;
-        byte [] pregunta,res1, res2, res3;
+        String preguntaD, res1D, res2D, res3D,pregunta, res1, res2, res3;;
+
 
         //Genero las claves pública y privada
-        KeyPairGenerator keygen = null;
+        KeyPairGenerator keygen = KeyPairGenerator.getInstance("RSA");
+        keygen.initialize(4096);
+        System.out.println("Genero claves");
         KeyPair keyPair = keygen.generateKeyPair();
+
         PrivateKey prvKey = keyPair.getPrivate();
         PublicKey pblKey = keyPair.getPublic(), claveServer;
+        System.out.println("entra en la función");
+        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+        //Envio clave publica al server
+        oos.writeObject(pblKey);
+        System.out.println("Envio clave");
+
         //Todo empezar con las preguntas
         do {
             //Recojo la informacion
+            System.out.println("Recojo preguntas");
+
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
             claveServer = (PublicKey) ois.readObject();
-            Cipher des = (Cipher) ois.readObject();
-            pregunta = (byte[]) ois.readObject();
-            res1 = (byte[]) ois.readObject();
-            res2 = (byte[]) ois.readObject();
-            res3 = (byte[]) ois.readObject();
+            pregunta = (String) ois.readObject();
+            res1 = (String) ois.readObject();
+            res2 = (String) ois.readObject();
+            res3 = (String) ois.readObject();
+            System.out.println("Recojo preguntas2");
 
             //Descifro los textos
-            des.init(Cipher.DECRYPT_MODE,claveServer);
-            byte[] preguntaB = des.doFinal(pregunta);
-            byte[] res1B = des.doFinal(pregunta);
-            byte[] res2B = des.doFinal(pregunta);
-            byte[] res3B = des.doFinal(pregunta);
-            preguntaD = new String(preguntaB);
-            res1D = new String(res1B);
-            res2D = new String(res2B);
-            res3D = new String(res3B);
-            System.out.println(preguntaD+"\n1-"+res1D+"\n2-"+res2D+"\n3-"+res3D+"\n4- Amaitu");
-            int seleccion = Integer.parseInt(br.readLine());
+            try {
+                Cipher des = Cipher.getInstance("RSA");
+                System.out.println("empiezo a desencriptar");
+                des.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
 
-        } while (respuesta != 4);
+                String preguntaB = new String(des.doFinal(pregunta.getBytes()));
+                System.out.println(1);
+                String res1B = new String(des.doFinal(res1.getBytes()));
+                String res2B = new String(des.doFinal(res2.getBytes()));
+                String res3B = new String(des.doFinal(res3.getBytes()));
+                System.out.println("desencriptado");
+                System.out.println(preguntaB + "\n1-" + res1B + "\n2-" + res2B + "\n3-" + res3B + "\n4- Amaitu");
+                String seleccion =(br.readLine());
+                respuesta = Integer.parseInt(seleccion);
+                //Encripto la respuesta
+                Cipher desRes = Cipher.getInstance("AES");
+                desRes.init(Cipher.ENCRYPT_MODE, claveServer);
+                byte[] elecE= desRes.doFinal(seleccion.getBytes());
+                oos.writeObject(elecE);
+            }catch (Exception b){
+                System.out.println(b);
+            }
+
+
+
+        } while ( respuesta!= 4);
 
 
     }
