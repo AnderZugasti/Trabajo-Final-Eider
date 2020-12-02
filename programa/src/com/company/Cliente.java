@@ -158,7 +158,7 @@ public class Cliente extends Thread {
 
         //Genero las claves pública y privada
         KeyPairGenerator keygen = KeyPairGenerator.getInstance("RSA");
-        keygen.initialize(4096);
+        keygen.initialize(1024);
         System.out.println("Genero claves");
         KeyPair keyPair = keygen.generateKeyPair();
 

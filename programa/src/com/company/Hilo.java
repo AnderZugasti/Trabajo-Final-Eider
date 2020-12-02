@@ -35,7 +35,7 @@ public class Hilo extends Thread {
         Matcher mat = null;
         try {
             keygen = KeyPairGenerator.getInstance("RSA");
-            keygen.initialize(4096);
+            keygen.initialize(1024);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -266,6 +266,8 @@ public class Hilo extends Thread {
             des.init(Cipher.ENCRYPT_MODE, claveCliente);
             //Se encriptan los 4 textos
             String textoE = new String(des.doFinal(texto.getBytes()));
+            System.out.println(texto);
+            System.out.println(textoE);
             System.out.println(textoE.getBytes().length);
             String res1E = new String(des.doFinal(res1.getBytes()));
             String res2E = new String(des.doFinal(res2.getBytes()));
