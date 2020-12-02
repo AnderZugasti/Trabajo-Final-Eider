@@ -13,13 +13,16 @@ public class Hilo extends Thread {
     private  String res1;
     private  String res2;
     private  String res3;
-    private static int respCorrec, puntuacion;
+    private static int respCorrec, puntuacion, correctas, incorrectas;
     private static KeyPairGenerator keygen = null;
     private static PublicKey Pubkey;
     private static PrivateKey prvKey;
-
-    public Hilo(Socket c) {
+    private ObjectInputStream ois;
+    private ObjectOutputStream oos;
+    public Hilo(Socket c,ObjectOutputStream oos,ObjectInputStream ois) {
         this.c = c;
+        this.ois = ois;
+        this.oos= oos;
 
     }
 
@@ -35,7 +38,7 @@ public class Hilo extends Thread {
         Matcher mat = null;
         try {
             keygen = KeyPairGenerator.getInstance("RSA");
-            keygen.initialize(1024);
+            keygen.initialize(2048);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -173,12 +176,12 @@ public class Hilo extends Thread {
                     //Se envian clave pública, normas y el HexaCifrado
                     System.out.println("Se le envía a " + nombre + " las normas");
                     flujoSalida.writeUTF(normas);//normas
-                    ObjectOutputStream oos = new ObjectOutputStream(c.getOutputStream());
+                   // ObjectOutputStream oos = new ObjectOutputStream(c.getOutputStream());
                     oos.writeObject(keypair.getPublic());//clave pública
                     oos.writeObject(firma);
 
                     //Se lee la respuesta del cliente
-                    ObjectInputStream ois = new ObjectInputStream(c.getInputStream());
+                   // ObjectInputStream ois = new ObjectInputStream(c.getInputStream());
 
                     int eleccion = (int) ois.readObject();
                     System.out.println("su respuesta es:" + eleccion);
@@ -212,7 +215,10 @@ public class Hilo extends Thread {
      * @param c es el socket que nos llega de la conexión
      **/
     public  void juego(Socket c, PrivateKey prK, PublicKey puK) throws IOException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, ClassNotFoundException {
-        int respuesta, cont = 1;
+        int cont = 1;
+        String respuesta;
+      //  ObjectInputStream ois = new ObjectInputStream(c.getInputStream());
+        PublicKey claveCliente = (PublicKey) ois.readObject();
         //Todo empezar con las preguntas
         do {
             System.out.println("contador: " + cont);
@@ -240,9 +246,16 @@ public class Hilo extends Thread {
             }
             cont++;
             System.out.println("contador: " + cont);
-            respuesta = Preguntas(texto, res1, res2, res3, c, prK, puK);
+            respuesta = Preguntas(texto, res1, res2, res3, c, prK, puK,claveCliente);
+            System.out.println("respuesta: "+respuesta);
+            if(respCorrec == Integer.parseInt(respuesta)){
+                puntuacion = puntuacion+2;
+                correctas++;
+            }else{
+                incorrectas++;
+            }
 
-        } while (respuesta != 4 || cont < 10);
+        } while (!respuesta.equals("4")  || cont <= 10);
 
     }
 
@@ -253,38 +266,55 @@ public class Hilo extends Thread {
      * @param res1  texto de la primera respuesta
      * @param res2  texto de la primera respuesta
      * @param res3  texto de la primera respuesta
+     * @param socket conexion
+     * @param puK La clave publica del servidor
+     * @param claveCliente La clave pública del cliente
      **/
-    public int Preguntas(String texto, String res1, String res2, String res3, Socket socket, PrivateKey prK, PublicKey puK) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, ClassNotFoundException {
+    public String Preguntas(String texto, String res1, String res2, String res3, Socket socket, PrivateKey prK, PublicKey puK,PublicKey claveCliente) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, ClassNotFoundException {
         System.out.println("entra en la función");
-        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-        PublicKey claveCliente = (PublicKey) ois.readObject();
         System.out.println("recojo clave");
         //Se genera Cipher
+
         System.out.println("Se prepara para encriptar");
         try {
             Cipher des = Cipher.getInstance("RSA");
             des.init(Cipher.ENCRYPT_MODE, claveCliente);
             //Se encriptan los 4 textos
-            String textoE = new String(des.doFinal(texto.getBytes()));
+
+
+
+
+            byte[] textoE = (des.doFinal(texto.getBytes()));
             System.out.println(texto);
             System.out.println(textoE);
-            System.out.println(textoE.getBytes().length);
-            String res1E = new String(des.doFinal(res1.getBytes()));
-            String res2E = new String(des.doFinal(res2.getBytes()));
-            String res3E = new String(des.doFinal(res3.getBytes()));
+            System.out.println(textoE.length);
+            byte[] res1E = (des.doFinal(res1.getBytes()));
+            byte[] res2E = (des.doFinal(res2.getBytes()));
+            byte[] res3E =(des.doFinal(res3.getBytes()));
             //Se envía los 4 textos, la clave pública y el chiper
             System.out.println("Pasa");
-            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+
+           // ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(puK);
             oos.writeObject(textoE);
             oos.writeObject(res1E);
             oos.writeObject(res2E);
             oos.writeObject(res3E);
-            return Integer.parseInt((String) ois.readObject());
+            System.out.println("pasa2");
+            System.out.println("Se recoge");
+           // ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+
+            System.out.println("pasa3");
+
+            byte[] resp = (byte[]) ois.readObject();
+            System.out.println(resp);
+            System.out.println("se desencripta");
+            des.init(Cipher.DECRYPT_MODE,prK);
+            return new String (des.doFinal(resp));
         } catch (Exception e) {
-            System.out.println(e);
+            System.err.println(e);
         }
-        return 0;
+        return null;
 
 
     }

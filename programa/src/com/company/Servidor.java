@@ -4,6 +4,8 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.InvalidKeyException;
@@ -22,7 +24,10 @@ public class Servidor {
         while (true) {
             c = s.accept(); //esperando cliente
             System.out.println("cliente conectado");
-            Hilo hilo = new Hilo(c);
+            ObjectInputStream ois = new ObjectInputStream(c.getInputStream());
+
+            ObjectOutputStream oos = new ObjectOutputStream(c.getOutputStream());
+            Hilo hilo = new Hilo(c,oos,ois);
             hilo.start();
         }
     }
